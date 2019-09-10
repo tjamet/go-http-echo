@@ -1,10 +1,20 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
+
+type R struct {
+	URL    *url.URL
+	Method string
+	Proto  string
+	Header http.Header
+	Host   string
+	body   string
+}
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	for k, v := range r.Header {
@@ -17,12 +27,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
-	_, err = w.Write(b)
-	if err != nil {
-		fmt.Printf("failed to write response: %s", err.Error())
-	}
-	fmt.Println("path: ", r.RequestURI, "method: ", r.Method)
-	fmt.Println("body: ", string(b))
+	e := json.NewEncoder(w)
+	e.SetIndent("", "  ")
+	e.Encode(&R{r.URL, r.Method, r.Proto, r.Header, r.Host, string(b)})
 }
 
 func main() {
