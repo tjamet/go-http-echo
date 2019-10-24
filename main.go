@@ -13,13 +13,11 @@ type R struct {
 	Proto  string
 	Header http.Header
 	Host   string
-	body   string
+	Body   string
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	for k, v := range r.Header {
-		w.Header()[k] = v
-	}
+	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.Header().Set("X-Request-Read-Error", err.Error())

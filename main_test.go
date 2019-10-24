@@ -28,7 +28,8 @@ func TestHandle(t *testing.T) {
 			"value"
 		  ]
 		},
-		"Host": "localhost:8080"
+		"Host": "localhost:8080",
+		"Body": "body"
 	  }`
 	r := httptest.NewRequest("GET", "http://localhost:8080/some/path", strings.NewReader("body"))
 	r.Header.Set("SomeHeader", "value")
