@@ -9,10 +9,10 @@ on:
 permissions:
   contents: read
 
-# No lint job yet: go.mod says `go 1.13`, so setup-go installs Go 1.13, which
+# No lint job yet: go.mod says `go 1.14`, so setup-go installs Go 1.14, which
 # current golangci-lint cannot run on. Lint is added in a later toolchain hop.
 
-# Go 1.13 (installed by setup-go from go.mod) cannot parse the runner's
+# Go 1.14 (installed by setup-go from go.mod) cannot parse the runner's
 # pipe-separated GOPROXY (`|` needs Go >= 1.15). The override sits on each go
 # step because a workflow-level `env:` does not beat the Gitea runner's
 # container env. Remove it at the first toolchain hop that reaches Go >= 1.15.
