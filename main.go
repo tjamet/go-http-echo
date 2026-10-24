@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -18,7 +18,7 @@ type R struct {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.Header().Set("X-Request-Read-Error", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
