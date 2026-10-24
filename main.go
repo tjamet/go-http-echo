@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 )
@@ -17,7 +18,7 @@ type R struct {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.Header().Set("X-Request-Read-Error", err.Error())
@@ -27,9 +28,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	e := json.NewEncoder(w)
 	e.SetIndent("", "  ")
-	e.Encode(&R{r.URL, r.Method, r.Proto, r.Header, r.Host, string(b)})
+	// The status line is already sent, so a failed write has no recovery.
+	_ = e.Encode(&R{r.URL, r.Method, r.Proto, r.Header, r.Host, string(b)})
 }
 
 func main() {
-	http.ListenAndServe(":8080", http.HandlerFunc(handler))
+	log.Fatal(http.ListenAndServe(":8080", http.HandlerFunc(handler)))
 }
