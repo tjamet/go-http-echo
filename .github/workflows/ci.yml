@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
 
-# No lint job yet: go.mod says `go 1.18`, so setup-go installs Go 1.18, which
+# No lint job yet: go.mod says `go 1.19`, so setup-go installs Go 1.19, which
 # current golangci-lint cannot run on. Lint is added in a later toolchain hop.
 
 jobs:
