@@ -1,9 +1,9 @@
 name: CI
 
-# No branch filter: gitea.jamet.me and the GitHub mirrors may name their
-# default branch differently, and one file has to serve both.
+# Push runs on `master` only; review branches are covered by their pull_request run.
 on:
   push:
+    branches: [master]
   pull_request:
 
 permissions:
