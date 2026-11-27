@@ -1,4 +1,4 @@
-ARG BASE_REGISTRY=zot.jamet.me/docker-hub/library
+ARG BASE_REGISTRY=docker.io/library
 ARG GO_VERSION=1.27.4
 ARG ALPINE_VERSION=3.24
 

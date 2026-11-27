@@ -1,7 +1,8 @@
 name: image
 
-# Built by the in-cluster Gitea Actions runner. Pushes go to the cluster's own
-# registry; pull requests build without pushing.
+# Built by the in-cluster Gitea Actions runner, and by GitHub on the repo's copy
+# there. The Actions variable DOCKER_REGISTRY names the registry; unset means
+# ghcr.io. Pull requests build without pushing.
 on:
   push:
     branches: [main, master]
@@ -16,31 +17,46 @@ on:
 
 permissions:
   contents: read
+  packages: write # ghcr.io push on GitHub
 
 env:
-  REGISTRY: zot.jamet.me
+  REGISTRY: ${{ vars.DOCKER_REGISTRY || 'ghcr.io' }}
+  # Docker Hub through the registry's proxy-cache, or Docker Hub itself next to
+  # ghcr.io.
+  DOCKER_HUB: ${{ (vars.DOCKER_REGISTRY || 'ghcr.io') != 'ghcr.io' && format('{0}/docker-hub', vars.DOCKER_REGISTRY) || 'docker.io' }}
   IMAGE: tjamet/go-http-echo
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_ZOT: ${{ secrets.ZOT_USERNAME != '' && secrets.ZOT_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@v7
 
-      # ZOT_USERNAME/ZOT_PASSWORD are the org-level secrets on tjamet. The login
-      # precedes buildx and runs on pull requests too: zot has no anonymous
-      # read, and both the BuildKit image and the Dockerfile base images are
-      # pulled through it. (Secrets are not exposed to fork PRs.)
+      # Gitea must never skip or push elsewhere silently: a lost org variable or
+      # secret fails here.
+      - name: Registry settings present
+        if: (env.REGISTRY != 'ghcr.io' || github.event_name != 'pull_request') && ((env.REGISTRY != 'ghcr.io' && env.HAS_ZOT != 'true') || (env.REGISTRY == 'ghcr.io' && !startsWith(github.server_url, 'https://github.com')))
+        run: |
+          echo "::error::DOCKER_REGISTRY or ZOT_USERNAME/ZOT_PASSWORD missing for $REGISTRY"
+          exit 1
+
+      # The login precedes buildx and, off ghcr.io, runs on pull requests too:
+      # zot has no anonymous read, and both the BuildKit image and the
+      # Dockerfile base images are pulled through it. (Secrets are not exposed
+      # to fork PRs.) The ZOT_* org secrets are never sent to ghcr.io.
       - name: Log in to the registry
+        if: env.REGISTRY != 'ghcr.io' || github.event_name != 'pull_request'
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.ZOT_USERNAME }}
-          password: ${{ secrets.ZOT_PASSWORD }}
+          username: ${{ env.REGISTRY == 'ghcr.io' && github.actor || secrets.ZOT_USERNAME }}
+          password: ${{ env.REGISTRY == 'ghcr.io' && secrets.GITHUB_TOKEN || secrets.ZOT_PASSWORD }}
 
       - uses: docker/setup-buildx-action@v4
         with:
-          driver-opts: image=zot.jamet.me/docker-hub/moby/buildkit:buildx-stable-1
+          driver-opts: image=${{ env.DOCKER_HUB }}/moby/buildkit:buildx-stable-1
 
       - id: meta
         uses: docker/metadata-action@v6
@@ -60,7 +76,8 @@ jobs:
           context: .
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
           build-args: |
-            BASE_REGISTRY=zot.jamet.me/docker-hub/library
+            BASE_REGISTRY=${{ env.DOCKER_HUB }}/library
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
